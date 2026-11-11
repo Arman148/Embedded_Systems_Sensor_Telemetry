@@ -99,6 +99,8 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  USART2_SendString("Sensor telemetry started\r\n");
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
