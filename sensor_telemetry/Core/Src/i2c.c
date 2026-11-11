@@ -22,6 +22,8 @@
 
 /* USER CODE BEGIN 0 */
 
+static volatile uint32_t i2c_ticks = 0;
+
 /* USER CODE END 0 */
 
 /* I2C1 init function */
@@ -84,6 +86,117 @@ void MX_I2C1_Init(void)
 }
 
 /* USER CODE BEGIN 1 */
+
+void I2C_Tick(void)
+{
+    i2c_ticks++;
+}
+
+uint32_t I2C_GetTick(void)
+{
+    return i2c_ticks;
+}
+
+static int I2C_WaitFlag(uint32_t flag)
+{
+    uint32_t start = I2C_GetTick();
+
+    while (1)
+    {
+        if (LL_I2C_IsActiveFlag_NACK(I2C1) ||
+            LL_I2C_IsActiveFlag_BERR(I2C1) ||
+            LL_I2C_IsActiveFlag_ARLO(I2C1))
+        {
+            return -1;
+        }
+
+        if ((I2C1->ISR & flag) != 0)
+        {
+            return 0;
+        }
+
+        if ((I2C_GetTick() - start) >= 100)
+        {
+            return -1;
+        }
+    }
+}
+
+static void I2C_ResetTransfer(void)
+{
+    LL_I2C_Disable(I2C1);
+
+    LL_I2C_ClearFlag_NACK(I2C1);
+    LL_I2C_ClearFlag_STOP(I2C1);
+    LL_I2C_ClearFlag_BERR(I2C1);
+    LL_I2C_ClearFlag_ARLO(I2C1);
+
+    LL_I2C_Enable(I2C1);
+}
+
+int I2C_WriteRegisters(uint8_t address, uint8_t reg,
+                       const uint8_t *data, uint16_t length)
+{
+    uint32_t start;
+
+    if (address > 0x7F || data == 0 ||
+        length == 0 || length > 254)
+    {
+        return -1;
+    }
+
+    start = I2C_GetTick();
+
+    while (LL_I2C_IsActiveFlag_BUSY(I2C1))
+    {
+        if ((I2C_GetTick() - start) >= 100)
+        {
+            return -1;
+        }
+    }
+
+    LL_I2C_ClearFlag_NACK(I2C1);
+    LL_I2C_ClearFlag_STOP(I2C1);
+    LL_I2C_ClearFlag_BERR(I2C1);
+    LL_I2C_ClearFlag_ARLO(I2C1);
+
+    LL_I2C_HandleTransfer(I2C1,
+                          (uint32_t)address << 1,
+                          LL_I2C_ADDRSLAVE_7BIT,
+                          length + 1,
+                          LL_I2C_MODE_AUTOEND,
+                          LL_I2C_GENERATE_START_WRITE);
+
+    if (I2C_WaitFlag(I2C_ISR_TXIS) != 0)
+    {
+        I2C_ResetTransfer();
+        return -1;
+    }
+
+    LL_I2C_TransmitData8(I2C1, reg);
+
+    for (uint16_t i = 0; i < length; i++)
+    {
+        if (I2C_WaitFlag(I2C_ISR_TXIS) != 0)
+        {
+            I2C_ResetTransfer();
+            return -1;
+        }
+
+        LL_I2C_TransmitData8(I2C1, data[i]);
+    }
+
+    if (I2C_WaitFlag(I2C_ISR_STOPF) != 0)
+    {
+        I2C_ResetTransfer();
+        return -1;
+    }
+
+    LL_I2C_ClearFlag_STOP(I2C1);
+
+    return 0;
+}
+
 
 /* USER CODE END 1 */
 

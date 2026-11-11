@@ -40,6 +40,12 @@ void MX_I2C1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 
+void I2C_Tick(void);
+uint32_t I2C_GetTick(void);
+
+int I2C_WriteRegisters(uint8_t address, uint8_t reg,
+                       const uint8_t *data, uint16_t length);
+
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
