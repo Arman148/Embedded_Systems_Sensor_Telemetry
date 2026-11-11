@@ -46,6 +46,10 @@ uint32_t I2C_GetTick(void);
 int I2C_WriteRegisters(uint8_t address, uint8_t reg,
                        const uint8_t *data, uint16_t length);
 
+int I2C_ReadRegisters(uint8_t address, uint8_t reg,
+                      uint8_t *data, uint16_t length);
+
+
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
