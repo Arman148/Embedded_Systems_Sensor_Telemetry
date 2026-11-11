@@ -1,0 +1,12 @@
+# Build output
+Debug/
+Release/
+build/
+
+# IDE workspace data
+.metadata/
+
+# Temporary files
+*.log
+*.tmp
+*~
