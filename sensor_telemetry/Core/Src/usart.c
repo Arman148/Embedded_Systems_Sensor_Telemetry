@@ -75,8 +75,6 @@ void MX_USART2_UART_Init(void)
 
 /* USER CODE BEGIN 1 */
 
-/* USER CODE BEGIN 1 */
-
 void USART2_SendString(const char *text)
 {
     int i = 0;
@@ -96,7 +94,6 @@ void USART2_SendString(const char *text)
     }
 }
 
-/* USER CODE END 1 */
 
 /* USER CODE END 1 */
 

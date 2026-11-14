@@ -25,6 +25,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include "hts221.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -102,6 +104,18 @@ int main(void)
   LL_SYSTICK_EnableIT();
 
   USART2_SendString("Sensor telemetry started\r\n");
+
+  HTS221_RegisterCallbacks(I2C_ReadRegisters, I2C_WriteRegisters);
+
+  if (HTS221_Init() == 0)
+  {
+      USART2_SendString("HTS221 initialized\r\n");
+  }
+  else
+  {
+      USART2_SendString("HTS221 initialization failed\r\n");
+  }
+
 
   /* USER CODE END 2 */
 
