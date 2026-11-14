@@ -26,6 +26,8 @@
 /* USER CODE BEGIN Includes */
 
 #include "hts221.h"
+#include <stdio.h>
+
 
 /* USER CODE END Includes */
 
@@ -47,6 +49,13 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+
+static float temperature;
+static float humidity;
+static int temperature_ready = 0;
+static int humidity_ready = 0;
+static uint32_t last_check = 0;
+static char message[64];
 
 /* USER CODE END PV */
 
@@ -126,6 +135,33 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+    if ((I2C_GetTick() - last_check) >= 100)
+    {
+        last_check = I2C_GetTick();
+
+        if (HTS221_ReadTemperature(&temperature) == 0)
+        {
+            temperature_ready = 1;
+        }
+
+        if (HTS221_ReadHumidity(&humidity) == 0)
+        {
+            humidity_ready = 1;
+        }
+
+        if (temperature_ready && humidity_ready)
+        {
+            snprintf(message, sizeof(message),
+                     "%.1f,%.0f\r\n",
+                     (double)temperature, (double)humidity);
+
+            USART2_SendString(message);
+
+            temperature_ready = 0;
+            humidity_ready = 0;
+        }
+    }
   }
   /* USER CODE END 3 */
 }
