@@ -26,7 +26,9 @@
 /* USER CODE BEGIN Includes */
 
 #include "hts221.h"
+#include "lps22hb.h"
 #include <stdio.h>
+#include <math.h>
 
 
 /* USER CODE END Includes */
@@ -56,12 +58,20 @@ static int temperature_ready = 0;
 static int humidity_ready = 0;
 static uint32_t last_check = 0;
 static char message[64];
+static float pressure;
+static int pressure_ready = 0;
+static float reference_pressure;
+static float relative_height;
+static int reference_ready = 0;
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+
+static float CalculateRelativeHeight(float pressure_hpa,
+                                     float reference_hpa);
 
 /* USER CODE END PFP */
 
@@ -125,6 +135,17 @@ int main(void)
       USART2_SendString("HTS221 initialization failed\r\n");
   }
 
+  LPS22HB_RegisterCallbacks(I2C_ReadRegisters, I2C_WriteRegisters);
+
+  if (LPS22HB_Init() == 0)
+  {
+      USART2_SendString("LPS22HB initialized\r\n");
+  }
+  else
+  {
+      USART2_SendString("LPS22HB initialization failed\r\n");
+  }
+
 
   /* USER CODE END 2 */
 
@@ -150,21 +171,44 @@ int main(void)
             humidity_ready = 1;
         }
 
-        if (temperature_ready && humidity_ready)
+        if (LPS22HB_ReadPressure(&pressure) == 0)
+        {
+            if (pressure > 0.0f)
+            {
+                if (reference_ready == 0)
+                {
+                    reference_pressure = pressure;
+                    reference_ready = 1;
+                }
+
+                relative_height = CalculateRelativeHeight(
+                    pressure, reference_pressure);
+
+                pressure_ready = 1;
+            }
+        }
+
+        if (temperature_ready && humidity_ready && pressure_ready)
         {
             snprintf(message, sizeof(message),
-                     "%.1f,%.0f\r\n",
-                     (double)temperature, (double)humidity);
+                     "%.1f,%.0f,%.2f,%.2f\r\n",
+                     (double)temperature,
+                     (double)humidity,
+                     (double)pressure,
+                     (double)relative_height);
 
             USART2_SendString(message);
 
             temperature_ready = 0;
             humidity_ready = 0;
+            pressure_ready = 0;
         }
     }
   }
+
   /* USER CODE END 3 */
 }
+
 
 /**
   * @brief System Clock Configuration
@@ -200,6 +244,13 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+static float CalculateRelativeHeight(float pressure_hpa,
+                                     float reference_hpa)
+{
+    return 44330.0f *
+           (1.0f - powf(pressure_hpa / reference_hpa, 0.1903f));
+}
 
 /* USER CODE END 4 */
 
